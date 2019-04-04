@@ -5,8 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GetWorkingHours"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
+        Title="MainWindow" Height="125" Width="300" MinHeight="125" MinWidth="300">
+    <Grid >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="1*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <DatePicker Grid.Column="0"  Grid.Row="0" SelectedDate="{Binding DateFrom}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+        <DatePicker Grid.Column="1"  Grid.Row="0" SelectedDate="{Binding DateTo}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+        <TextBox x:Name="textBox" Grid.Column="1" IsReadOnly="True" Text="{Binding Path=TextBoxContent, Mode=OneWay}" Grid.Row="1" HorizontalAlignment="Left" Margin="10" Height="23" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+
     </Grid>
 </Window>

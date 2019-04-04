@@ -23,6 +23,7 @@ namespace GetWorkingHours
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new ViewModel();
         }
     }
 }
