@@ -22,7 +22,7 @@ namespace GetWorkingHours
                 if (value != _DateFrom)
                 {
                     _DateFrom = value;
-                    TextBoxContent = $"{GetHoursBetweenChoosenDates()} hours";
+                    TextBoxContent = GetDiffBetweenChoosenDates().ToString();
                     RaisePropertyChanged();
                     RaisePropertyChanged(nameof(TextBoxContent));
                 }
@@ -40,20 +40,44 @@ namespace GetWorkingHours
                 if (value != _DateTo)
                 {
                     _DateTo = value;
-                    TextBoxContent = $"{GetHoursBetweenChoosenDates()} hours";
+                    TextBoxContent = GetDiffBetweenChoosenDates().ToString();
                     RaisePropertyChanged();
                     RaisePropertyChanged(nameof(TextBoxContent));
                 }
             }
         }
         public string TextBoxContent { get; set; }
-
-        private double GetHoursBetweenChoosenDates()
+        private static string WindowsIdentityName { get; } = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+        private static string FormattedIdentityName
         {
-            if (DateFrom > DateTo) throw new ArgumentException(nameof(DateTo));
+            get
+            {
+                var splited = WindowsIdentityName.Split('\\');
+                return splited.Last();
+            }
+        }
+        private static IEnumerable<EventLogEntry> EagerLog()
+        {
+            EventLog log = EventLog.GetEventLogs().First(o => o.Log == "Security");
+            var logon = log.Entries.Cast<EventLogEntry>();
+            return logon;
+        }
+        private static Lazy<IEnumerable<EventLogEntry>> LazyLog { get; set; } = new Lazy<IEnumerable<EventLogEntry>>(() => { return EagerLog(); });
+        private static Lazy<IEnumerable<EventLogEntry>> LazyLogOnLog { get; set; } = new Lazy<IEnumerable<EventLogEntry>>(() => 
+        {
+            return LazyLog.Value.Where(entry => entry.InstanceId == 4624 && entry.Message.Contains(FormattedIdentityName));
+        });
+        private static Lazy<IEnumerable<EventLogEntry>> LazyLogOffLog { get; set; } = new Lazy<IEnumerable<EventLogEntry>>(() =>
+        {
+            return LazyLog.Value.Where(entry => entry.InstanceId == 4634 && entry.Message.Contains(FormattedIdentityName));
+        });
+
+        private TimeSpan GetDiffBetweenChoosenDates()
+        {
+            if (DateFrom.Date > DateTo.Date) throw new ArgumentException(nameof(DateTo));
             var currentCheck = DateFrom;
             TimeSpan summaryDiff = new TimeSpan();
-            while (currentCheck < DateTo)
+            while (currentCheck <= DateTo)
             {
                 var firstLogon = GetFirstSecurityLogonThatDay(currentCheck);
                 var lastLogon = GetLastSecurityLogoffThatDay(currentCheck);
@@ -63,44 +87,41 @@ namespace GetWorkingHours
                 summaryDiff += lastLogon - firstLogon;
                 currentCheck = currentCheck.AddDays(1);
             }
-            return summaryDiff.TotalHours;
-        }
-
-        private string windowsIdentityName = null;
-        public string WindowsIdentityName
-        {
-            get
-            {
-                if (windowsIdentityName == null)
-                {
-                    windowsIdentityName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
-                }
-                return windowsIdentityName;
-            }
+            return summaryDiff;
         }
         public DateTime GetFirstSecurityLogonThatDay(DateTime date)
         {
-            EventLog log = EventLog.GetEventLogs().First(o => o.Log == "Security");
-            var splited = WindowsIdentityName.Split('\\');
-            var nameToCheckOn = splited.Last();
-            var logon = log.Entries.Cast<EventLogEntry>()
-                .Where(entry => entry.TimeWritten.Date == date.Date && entry.InstanceId == 4624 && entry.Message.Contains(nameToCheckOn))
-                .OrderBy(i => i.TimeWritten)
-                .FirstOrDefault();
-            if (logon == null) return date;
-            return logon.TimeWritten;
+            DateTime result = DateTime.MaxValue;
+            foreach (var entry in LazyLogOnLog.Value)
+            {
+                if (entry.TimeWritten.Date == date.Date)
+                {
+                    if (result > entry.TimeWritten)
+                    {
+                        result = entry.TimeWritten;
+                    }
+                }
+            }
+            if (result == DateTime.MaxValue)
+                return date;
+            else return result;
         }
         public DateTime GetLastSecurityLogoffThatDay(DateTime date)
         {
-            EventLog log = EventLog.GetEventLogs().First(o => o.Log == "Security");
-            var splited = WindowsIdentityName.Split('\\');
-            var nameToCheckOn = splited.Last();
-            var logon = log.Entries.Cast<EventLogEntry>()
-                .Where(entry => entry.TimeWritten.Date == date.Date && entry.InstanceId == 4634 && entry.Message.Contains(nameToCheckOn))
-                .OrderByDescending(i => i.TimeWritten)
-                .FirstOrDefault();
-            if (logon == null) return date;
-            return logon.TimeWritten;
+            DateTime result = DateTime.MinValue;
+            foreach (var entry in LazyLogOffLog.Value)
+            {
+                if (entry.TimeWritten.Date == date.Date)
+                {
+                    if (result < entry.TimeWritten)
+                    {
+                        result = entry.TimeWritten;
+                    }
+                }
+            }
+            if (result == DateTime.MinValue)
+                return date;
+            else return result;
         }
     }
 }

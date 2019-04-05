@@ -17,7 +17,7 @@
         </Grid.RowDefinitions>
         <DatePicker Grid.Column="0"  Grid.Row="0" SelectedDate="{Binding DateFrom}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
         <DatePicker Grid.Column="1"  Grid.Row="0" SelectedDate="{Binding DateTo}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
-        <TextBox x:Name="textBox" Grid.Column="1" IsReadOnly="True" Text="{Binding Path=TextBoxContent, Mode=OneWay}" Grid.Row="1" HorizontalAlignment="Left" Margin="10" Height="23" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="textBox" Grid.Column="1" IsReadOnly="True" Text="{Binding Path=TextBoxContent, Mode=OneWay}" Grid.Row="1" HorizontalAlignment="Left" Margin="10" Height="AUTO" Width="AUTO" MinWidth="120" TextWrapping="WrapWithOverflow" VerticalAlignment="Top" />
 
     </Grid>
 </Window>
